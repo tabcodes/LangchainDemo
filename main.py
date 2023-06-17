@@ -12,18 +12,19 @@ import streamlit as st
 config = load_dotenv()
 openai_key = os.getenv("OPENAI_API_KEY")
 
-st.title("LangChain Demo - OpenAPI")
-input_text = st.text_input("Search topic...")
+st.title("LangChain Demo")
+st.header("UFC Fighter Lookup")
+
+input_text = st.text_input("Enter the name of an MMA fighter...")
 
 first_input_prompt = PromptTemplate(
-    input_variables=["fighter"], template="Tell me about MMA fighter {fighter}."
+    input_variables=["name"], template="Tell me about MMA fighter {name}."
 )
 
 # Memory management
-fighter_memory = ConversationBufferMemory(
-    input_key="fighter", memory_key="chat_history"
-)
-dob_memory = ConversationBufferMemory(input_key="person", memory_key="chat_history")
+fighter_memory = ConversationBufferMemory(input_key="name", memory_key="chat_history")
+
+dob_memory = ConversationBufferMemory(input_key="name", memory_key="chat_history")
 
 events_memory = ConversationBufferMemory(
     input_key="dob", memory_key="description_history"
@@ -35,12 +36,12 @@ chain = LLMChain(
     llm=llm,
     prompt=first_input_prompt,
     verbose=True,
-    output_key="person",
+    output_key="fighter",
     memory=fighter_memory,
 )
 
 second_input_prompt = PromptTemplate(
-    input_variables=["fighter"], template="When was the date that {fighter} was born?"
+    input_variables=["name"], template="Give me only the date that {name} was born."
 )
 
 chain2 = LLMChain(
@@ -67,16 +68,19 @@ chain3 = LLMChain(
 
 parent_chain = SequentialChain(
     chains=[chain, chain2, chain3],
-    input_variables=["fighter"],
-    output_variables=["person", "dob", "events"],
+    input_variables=["name"],
+    output_variables=["fighter", "dob", "events"],
     verbose=True,
 )
 
 if input_text:
-    st.write(parent_chain({"fighter": input_text}))
+    st.write(parent_chain({"name": input_text}))
 
-    with st.expander("Fighter Name"):
+    with st.expander("Fighter Name", True):
         st.info(fighter_memory.buffer)
 
-    with st.expander("Events"):
+    with st.expander("Date of Birth", True):
+        st.info(dob_memory.buffer)
+
+    with st.expander("Events", True):
         st.info(events_memory.buffer)
